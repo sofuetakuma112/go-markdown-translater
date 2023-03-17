@@ -1,0 +1,4 @@
+github.com/gomarkdown/markdown v0.0.0-20230313173142-2ced44d5b584 h1:XaUmlCIi5hEY5GPUV6oXc5eytg9+FBH9/9fOKblHWEU=
+github.com/gomarkdown/markdown v0.0.0-20230313173142-2ced44d5b584/go.mod h1:JDGcbDT52eL4fju3sZ4TeHGsQwhG9nbDV21aMyhwPoA=
+github.com/yuin/goldmark v1.5.4 h1:2uY/xC0roWy8IBEGLgB1ywIoEJFGmRrX21YQcvGZzjU=
+github.com/yuin/goldmark v1.5.4/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
