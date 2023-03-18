@@ -1,0 +1,28 @@
+{
+  "name": "go-markdown-translater",
+  "version": "1.0.0",
+  "description": "",
+  "main": "turndown.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sofuetakuma112/go-markdown-translater.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sofuetakuma112/go-markdown-translater/issues"
+  },
+  "homepage": "https://github.com/sofuetakuma112/go-markdown-translater#readme",
+  "dependencies": {
+    "jsdom": "^21.1.1",
+    "moment": "^2.29.4",
+    "turndown": "^7.1.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.36.0"
+  },
+  "type": "module"
+}
