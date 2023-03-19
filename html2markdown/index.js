@@ -4,7 +4,7 @@ import {
   getArticleFromDom,
   convertArticleToMarkdown,
   formatTitle,
-} from "./markdown.js";
+} from "./articleMarkdownConverter.js";
 
 // eslint-disable-next-line no-undef
 const htmlFilePath = process.argv[2];

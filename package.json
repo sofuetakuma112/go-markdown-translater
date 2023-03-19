@@ -17,8 +17,12 @@
   },
   "homepage": "https://github.com/sofuetakuma112/go-markdown-translater#readme",
   "dependencies": {
+    "@mozilla/readability": "^0.4.2",
+    "codemirror": "^5.0.0",
+    "codemirror-ssr": "^0.65.0",
     "jsdom": "^21.1.1",
     "moment": "^2.29.4",
+    "puppeteer": "^19.7.5",
     "turndown": "^7.1.1"
   },
   "devDependencies": {
