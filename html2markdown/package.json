@@ -23,7 +23,8 @@
     "jsdom": "^21.1.1",
     "moment": "^2.29.4",
     "puppeteer": "^19.7.5",
-    "turndown": "^7.1.1"
+    "turndown": "^7.1.1",
+    "yargs": "^17.7.1"
   },
   "devDependencies": {
     "eslint": "^8.36.0"

@@ -5,6 +5,8 @@ import { getOptions } from "./default-options.js";
 import { mimedb } from "./apache-mime-types.js";
 import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
+import fs from "fs";
+import path from "path";
 
 TurndownService.prototype.defaultEscape = TurndownService.prototype.escape;
 
@@ -32,15 +34,42 @@ function turndown(content, options, article) {
   turndownService.keep(["iframe", "sub", "sup"]);
 
   let imageList = {};
-  // add an image rule
+  // このコードは、turndownService（HTMLをMarkdownに変換するライブラリ）にカスタムルールを追加しています。
+  // このルールは、画像(<img>タグ)の処理方法をカスタマイズするために使用されます。
+  // このカスタムルールを追加することで、turndownServiceは、画像のダウンロードやリンク形式のオプションに応じて、HTML内の画像タグを適切なMarkdown形式に変換できるようになります。
   turndownService.addRule("images", {
+    // この関数は、処理対象のノード（DOM要素）を選択するためのフィルタリング条件を定義します。この場合、ノードが<img>タグでsrc属性を持っているものだけを対象にしています。
+    // - src属性のURIを検証し、記事のベースURIを考慮した正しいURIに置き換えます。
+    // - オプションで画像のダウンロードが有効になっている場合、以下の処理が実行されます。
+    //     - 画像ファイル名を生成し、既存の画像リストと重複しないように調整します。
+    //     - 画像リストに新しい画像ファイル名を追加します。
+    //     - オプションに応じて、画像のローカルパスを設定します。
     filter: function (node, tdopts) {
       // if we're looking at an img node with a src
       if (node.nodeName == "IMG" && node.getAttribute("src")) {
-        // get the original src
-        let src = node.getAttribute("src");
-        // set the new src
-        node.setAttribute("src", validateUri(src, article.baseURI));
+        let src;
+        if (options.isLocal) {
+          // FIXME: 恐らく本リポジトリのディレクトリ以下に置いたhtmlファイルのみ有効なコードになっているので修正する
+          // 画像を読みこんでbase64形式にエンコードして画像のsrcとしてセットする
+          src = node.getAttribute("src");
+
+          // eslint-disable-next-line no-undef
+          const currentDirectory = process.cwd();
+
+          const fullPath = path.join(
+            currentDirectory,
+            options.htmlDirPath,
+            src
+          );
+
+          const base64Image = encodeImageToBase64(fullPath);
+          node.setAttribute("src", base64Image);
+        } else {
+          // get the original src
+          src = node.getAttribute("src");
+          // set the new src
+          node.setAttribute("src", validateUri(src, article.baseURI));
+        }
 
         // if we're downloading images, there's more to do.
         if (options.downloadImages) {
@@ -84,6 +113,10 @@ function turndown(content, options, article) {
       // don't pass the filter, just output a normal markdown link
       return false;
     },
+    // この関数は、HTMLノードをMarkdown形式に変換する方法を定義します。このコードでは、以下のオプションに応じて異なるタイプのMarkdown画像リンクが生成されます。
+    // - noImageオプションが選択されている場合、画像は出力されません。
+    // - obsidianオプションが選択されている場合、Obsidianスタイルの画像リンクが出力されます（![[image_path]]）。
+    // - それ以外の場合、通常のMarkdown画像リンクが出力されます。
     replacement: function (content, node, tdopts) {
       // if we're stripping images, output nothing
       if (options.imageStyle == "noImage") return "";
@@ -103,7 +136,8 @@ function turndown(content, options, article) {
         } else return src ? "![" + alt + "]" + "(" + src + titlePart + ")" : "";
       }
     },
-    references: [],
+    references: [], // 参照スタイルの画像リンクを使用する場合に、参照リストを格納する配列です。
+    // 変換後のMarkdownに参照リストを追加するために使用されます。参照リストが存在する場合、Markdownの末尾に追加され、参照リストはリセットされます。
     append: function (options) {
       var references = "";
       if (this.references.length) {
@@ -182,6 +216,36 @@ function turndown(content, options, article) {
   );
 
   return { markdown: markdown, imageList: imageList };
+}
+
+function getMimeType(extension) {
+  switch (extension) {
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    case "png":
+      return "image/png";
+    case "gif":
+      return "image/gif";
+    case "bmp":
+      return "image/bmp";
+    default:
+      throw Error("unsupported file extension");
+  }
+}
+
+function encodeImageToBase64(filePath) {
+  // ファイルをバイナリデータとして読み込む
+  const imageData = fs.readFileSync(filePath);
+
+  // 拡張子を取得して、MIMEタイプを決定する
+  const extension = path.extname(filePath).slice(1);
+  const mimeType = getMimeType(extension);
+
+  // バイナリデータをBase64形式にエンコードする
+  const base64Image = imageData.toString("base64");
+
+  return `data:${mimeType};base64,${base64Image}`;
 }
 
 /**
@@ -383,12 +447,7 @@ function textReplace(string, article, disallowedChars = null) {
  *
  * この関数は、記事情報オブジェクトをマークダウン形式に変換し、必要に応じて画像をダウンロードして記事の前後に追加情報を含めるために使用されます。
  */
-export async function convertArticleToMarkdown(article, downloadImages = null) {
-  const options = await getOptions();
-  if (downloadImages != null) {
-    options.downloadImages = downloadImages;
-  }
-
+export async function convertArticleToMarkdown(article, options) {
   // substitute front and backmatter templates if necessary
   if (options.includeTemplate) {
     options.frontmatter = textReplace(options.frontmatter, article) + "\n";

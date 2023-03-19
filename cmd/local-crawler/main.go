@@ -9,11 +9,10 @@ import (
 )
 
 func html2markdown(filePath, outDirPath string) {
-	// scriptPath := filepath.Join("..", "..", "html2markdown")
 	scriptPath := "html2markdown"
 
-	fmt.Printf("node %s %s %s\n", scriptPath, filePath, outDirPath)
-	cmd := exec.Command("node", scriptPath, filePath, outDirPath)
+	fmt.Printf("node %s --htmlFile %s --outputDir %s\n", scriptPath, filePath, outDirPath)
+	cmd := exec.Command("node", scriptPath, "--htmlFile", filePath, "--outputDir", outDirPath, "--local")
 
 	err := cmd.Run()
 	if err != nil {

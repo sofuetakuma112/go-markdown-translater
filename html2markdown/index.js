@@ -5,11 +5,35 @@ import {
   convertArticleToMarkdown,
   formatTitle,
 } from "./articleMarkdownConverter.js";
+import yargs from "yargs/yargs";
+import { hideBin } from "yargs/helpers";
+import { getOptions } from "./default-options.js";
 
 // eslint-disable-next-line no-undef
-const htmlFilePath = process.argv[2];
-// eslint-disable-next-line no-undef
-const outDirPath = process.argv[3] + "/md";
+const argv = yargs(hideBin(process.argv))
+  .option("htmlFile", {
+    alias: "f",
+    description: "Path to the HTML file",
+    type: "string",
+    demandOption: true,
+  })
+  .option("outputDir", {
+    alias: "o",
+    description: "Output directory path for the generated Markdown file",
+    type: "string",
+    demandOption: true,
+  })
+  .option("local", {
+    alias: "l",
+    type: "boolean",
+    description: "A local html file or",
+  })
+  .help()
+  .alias("help", "h").argv;
+
+const htmlFilePath = argv.htmlFile;
+const outDirPath = argv.outputDir + "/md";
+const isLocal = argv.local;
 
 fs.access(outDirPath, fs.constants.F_OK, (err) => {
   if (err) {
@@ -31,9 +55,19 @@ fs.readFile(htmlFilePath, "utf8", async (err, html) => {
     process.exit(1);
   }
 
+  const htmlDirPath = path.dirname(htmlFilePath);
+
   const article = await getArticleFromDom(html);
+
   // convert the article to markdown
-  const { markdown, imageList } = await convertArticleToMarkdown(article);
+  const options = await getOptions();
+  options.isLocal = isLocal;
+  options.htmlDirPath = htmlDirPath;
+
+  const { markdown, imageList } = await convertArticleToMarkdown(
+    article,
+    options
+  );
   // format the title
   article.title = await formatTitle(article);
 
