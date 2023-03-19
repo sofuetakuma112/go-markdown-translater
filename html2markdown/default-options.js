@@ -29,6 +29,8 @@ const defaultOptions = {
   obsidianFolder: "",
   isLocal: false,
   htmlDirPath: "",
+  mdDirPath: "",
+  mdImgsDirPath: "",
 };
 
 // function to get the options from storage and substitute default options if it fails

@@ -4,14 +4,23 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"html"
 	"io/ioutil"
 	"log"
+	"os"
 	"regexp"
 	"strings"
+
+	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 func main() {
-	filePath := "sample.md"
+	if len(os.Args) != 2 {
+		fmt.Println("Usage: counttext <input-file>")
+		os.Exit(1)
+	}
+
+	filePath := os.Args[1]
 
 	// ファイルを読み込む
 	content, err := ioutil.ReadFile(filePath)
@@ -21,11 +30,18 @@ func main() {
 
 	source := string(content)
 
+	textContents := ""
+
 	for _, it := range parseMarkdown(source) {
 		if it.Type != Other {
-			fmt.Println(it.Text)
+			textContents += it.Text
+			textContents += "\n"
 		}
 	}
+
+	ioutil.WriteFile("textContents.md", []byte(textContents), 0644)
+
+	// diff(textContents, source)
 }
 
 type ItemType int
@@ -85,6 +101,10 @@ func parseMarkdown(source string) []*Item {
 			current.Reset()
 		}
 	}
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+
 	if current.Len() > 0 {
 		result = append(result, &Item{
 			Type: Text,
@@ -93,4 +113,27 @@ func parseMarkdown(source string) []*Item {
 	}
 
 	return result
+}
+
+func diff(source, target string) {
+	dmp := diffmatchpatch.New()
+	diffs := dmp.DiffMain(source, target, false)
+
+	var result strings.Builder
+	for _, diff := range diffs {
+		switch diff.Type {
+		case diffmatchpatch.DiffInsert:
+			result.WriteString("\033[32m") // 緑色で挿入されたテキストを表示
+			result.WriteString(html.EscapeString(diff.Text))
+			result.WriteString("\033[0m") // リセット
+		case diffmatchpatch.DiffDelete:
+			result.WriteString("\033[31m") // 赤色で削除されたテキストを表示
+			result.WriteString(html.EscapeString(diff.Text))
+			result.WriteString("\033[0m") // リセット
+		case diffmatchpatch.DiffEqual:
+			result.WriteString(html.EscapeString(diff.Text))
+		}
+	}
+
+	fmt.Println(result.String())
 }

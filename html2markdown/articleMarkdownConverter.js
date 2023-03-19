@@ -7,6 +7,8 @@ import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
 import fs from "fs";
 import path from "path";
+import { copyFile, createDirIfNotExist } from "./file.js";
+import { fullPathToRelativePath } from "./path.js";
 
 TurndownService.prototype.defaultEscape = TurndownService.prototype.escape;
 
@@ -50,20 +52,18 @@ function turndown(content, options, article) {
         let src;
         if (options.isLocal) {
           // FIXME: 恐らく本リポジトリのディレクトリ以下に置いたhtmlファイルのみ有効なコードになっているので修正する
-          // 画像を読みこんでbase64形式にエンコードして画像のsrcとしてセットする
-          src = node.getAttribute("src");
+          const imgSrc = node.getAttribute("src");
 
           // eslint-disable-next-line no-undef
           const currentDirectory = process.cwd();
 
-          const fullPath = path.join(
-            currentDirectory,
-            options.htmlDirPath,
-            src
-          );
+          const fileName = path.basename(imgSrc);
 
-          const base64Image = encodeImageToBase64(fullPath);
-          node.setAttribute("src", base64Image);
+          const relativeImgPath = fullPathToRelativePath(
+            path.join(currentDirectory, options.mdImgsDirPath, fileName), // 画像のフルパス
+            options.mdDirPath // mdファイルが有るディレクトリのパス
+          );
+          node.setAttribute("src", relativeImgPath);
         } else {
           // get the original src
           src = node.getAttribute("src");

@@ -9,13 +9,14 @@ import (
 )
 
 func main() {
-	if len(os.Args) != 3 {
-		fmt.Println("Usage: markdownmerger <output-file> <input-directory>")
+	if len(os.Args) != 2 {
+		fmt.Println("Usage: markdownmerger <input-directory>")
 		os.Exit(1)
 	}
 
-	outputFile := os.Args[1]
-	inputDir := os.Args[2]
+	inputDir := os.Args[1]
+
+	outputFile := filepath.Join(inputDir, "merged.md")
 
 	err := mergeMarkdownFiles(outputFile, inputDir)
 	if err != nil {

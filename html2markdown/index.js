@@ -8,6 +8,8 @@ import {
 import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
 import { getOptions } from "./default-options.js";
+import { createDirIfNotExist } from "./file.js";
+import { copyAllImagesFromHtmlString } from "./html.js";
 
 // eslint-disable-next-line no-undef
 const argv = yargs(hideBin(process.argv))
@@ -32,21 +34,10 @@ const argv = yargs(hideBin(process.argv))
   .alias("help", "h").argv;
 
 const htmlFilePath = argv.htmlFile;
-const outDirPath = argv.outputDir + "/md";
+const mdDirPath = argv.outputDir + "/md";
 const isLocal = argv.local;
 
-fs.access(outDirPath, fs.constants.F_OK, (err) => {
-  if (err) {
-    console.log("Directory does not exist, creating...");
-    fs.mkdir(outDirPath, { recursive: true }, (err) => {
-      if (err) {
-        console.error("Error creating directory:", err);
-      } else {
-        console.log("Directory created successfully");
-      }
-    });
-  }
-});
+createDirIfNotExist(mdDirPath);
 
 fs.readFile(htmlFilePath, "utf8", async (err, html) => {
   if (err) {
@@ -63,6 +54,12 @@ fs.readFile(htmlFilePath, "utf8", async (err, html) => {
   const options = await getOptions();
   options.isLocal = isLocal;
   options.htmlDirPath = htmlDirPath;
+  options.mdDirPath = mdDirPath;
+
+  const mdImgsDirPath = path.join(mdDirPath, "/images");
+  options.mdImgsDirPath = mdImgsDirPath;
+
+  await copyAllImagesFromHtmlString(article.content, options);
 
   const { markdown, imageList } = await convertArticleToMarkdown(
     article,
@@ -73,7 +70,7 @@ fs.readFile(htmlFilePath, "utf8", async (err, html) => {
 
   const fileNameWithoutExtension = path.parse(htmlFilePath).name;
   fs.writeFile(
-    `${outDirPath}/${fileNameWithoutExtension}.md`,
+    `${mdDirPath}/${fileNameWithoutExtension}.md`,
     markdown,
     (err) => {
       if (err) {
