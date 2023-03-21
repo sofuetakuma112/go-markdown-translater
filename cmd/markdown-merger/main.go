@@ -35,7 +35,7 @@ func mergeMarkdownFiles(outputFile, inputDir string) error {
 			return err
 		}
 
-		if !info.IsDir() && strings.HasSuffix(strings.ToLower(info.Name()), ".md") {
+		if !info.IsDir() && strings.HasSuffix(strings.ToLower(info.Name()), ".md") && info.Name() != "merged.md" && info.Name() != "translated.md" {
 			content, err := ioutil.ReadFile(path)
 			if err != nil {
 				return err
