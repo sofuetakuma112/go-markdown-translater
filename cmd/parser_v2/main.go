@@ -222,30 +222,38 @@ func (n Node) String() string {
 	return fmt.Sprintf("{Type:%s Text:%s NestSpaceCount:%d HeadingLevel:%d}", n.Type, n.Text, n.NestSpaceCount, n.HeadingLevel)
 }
 
+func nodeToMarkdown(node Node) string {
+	prefix := strings.Repeat(" ", node.NestSpaceCount)
+	switch node.Type {
+	case Heading:
+		return prefix + strings.Repeat("#", node.HeadingLevel) + " " + node.Text + "\n"
+	case Paragraph:
+		return prefix + node.Text + "\n"
+	case Item:
+		return prefix + "- " + node.Text + "\n"
+	case OrderedItem:
+		orderNum := strconv.Itoa(node.OrderedItemNum)
+		return prefix + orderNum + ". " + node.Text + "\n"
+	case CodeBlock:
+		return prefix + "```\n" + node.Text + "\n" + prefix + "```\n"
+	case Image:
+		return prefix + node.Text + "\n"
+	case Table:
+		return prefix + node.Text + "\n"
+	case Blank:
+		return "\n"
+	default:
+		return ""
+	}
+}
+
 func NodesToMarkdown(nodes []Node) string {
 	var markdown strings.Builder
 
 	for _, node := range nodes {
-		switch node.Type {
-		case Heading:
-			markdown.WriteString(strings.Repeat(" ", node.NestSpaceCount) + strings.Repeat("#", node.HeadingLevel) + " " + node.Text + "\n")
-		case Paragraph:
-			markdown.WriteString(strings.Repeat(" ", node.NestSpaceCount) + node.Text + "\n")
-		case Item:
-			markdown.WriteString(strings.Repeat(" ", node.NestSpaceCount) + "- " + node.Text + "\n")
-		case OrderedItem:
-			orderNum := strconv.Itoa(node.OrderedItemNum)
-			markdown.WriteString(strings.Repeat(" ", node.NestSpaceCount) + orderNum + ". " + node.Text + "\n")
-		case CodeBlock:
-			markdown.WriteString(strings.Repeat(" ", node.NestSpaceCount) + "```\n" + node.Text + "\n" + strings.Repeat(" ", node.NestSpaceCount) + "```\n")
-		case Image:
-			markdown.WriteString(strings.Repeat(" ", node.NestSpaceCount) + node.Text + "\n")
-		case Table:
-			markdown.WriteString(strings.Repeat(" ", node.NestSpaceCount) + node.Text + "\n")
-		case Blank:
-			markdown.WriteString("\n")
-		}
+		markdown.WriteString(nodeToMarkdown(node))
 	}
 
 	return strings.TrimSuffix(markdown.String(), "\n")
 }
+
