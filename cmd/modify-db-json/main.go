@@ -8,6 +8,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/sofuetakuma112/go-markdown-translater/pkg/translate"
 )
 
 type Set map[int]bool
@@ -18,12 +20,6 @@ func NewSet() Set {
 
 func (s Set) Add(item int) {
 	s[item] = true
-}
-
-type Item struct {
-	SourceText     string `json:"sourceText"`
-	TranslatedText string `json:"translatedText"`
-	FormattedText  string `json:"formattedText"`
 }
 
 func main() {
@@ -42,7 +38,7 @@ func main() {
 		}
 	}
 
-	var items []*Item
+	var items []*translate.Item
 	err := json.Unmarshal(bytes, &items)
 	if err != nil {
 		fmt.Println("Error parsing JSON:", err)

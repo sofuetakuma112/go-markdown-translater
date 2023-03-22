@@ -105,9 +105,9 @@ func main() {
 			defer wg.Done()
 			defer func() { <-semaphore }() // ゴルーチン終了時にセマフォから値を取り除く
 
-			row := db.QueryRow("SELECT translated_text FROM translations WHERE source_text = ?", sourceText)
-			var translatedText string
-			err := row.Scan(&translatedText)
+			row := db.QueryRow("SELECT formatted_text FROM translations WHERE source_text = ?", sourceText)
+			var formattedText string
+			err := row.Scan(&formattedText)
 
 			if err == sql.ErrNoRows {
 				// translatedText, err = translate.Translate(sourceText)
@@ -153,7 +153,7 @@ func main() {
 			} else if err != nil {
 				log.Fatal(err)
 			} else {
-				node.TranslatedText = translatedText
+				node.TranslatedText = formattedText
 			}
 
 			progressBar.Increment()
