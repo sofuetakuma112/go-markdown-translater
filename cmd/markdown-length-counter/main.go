@@ -12,7 +12,9 @@ import (
 	"unicode/utf8"
 
 	"github.com/joho/godotenv"
+	"github.com/sofuetakuma112/go-markdown-translater/pkg/gpt35/generator"
 	"github.com/sofuetakuma112/go-markdown-translater/pkg/parser"
+	"github.com/sofuetakuma112/go-markdown-translater/pkg/textprocesser"
 )
 
 func main() {
@@ -42,7 +44,16 @@ func main() {
 	for _, node := range nodes {
 		switch node.Type {
 		case parser.Heading, parser.Paragraph, parser.Item, parser.OrderedItem, parser.Table:
-			codePoints += len(node.Text)
+			if !textprocesser.ContainsEnglishWords(node.Text) {
+				continue
+			}
+
+			gptInputStr, err := generator.GenerateGptInputString(node.Text)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			codePoints += len(gptInputStr)
 		}
 	}
 

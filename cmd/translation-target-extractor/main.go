@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/sofuetakuma112/go-markdown-translater/pkg/parser"
+	"github.com/sofuetakuma112/go-markdown-translater/pkg/textprocesser"
 )
 
 func main() {
@@ -35,18 +36,24 @@ func main() {
 	for i, node := range nodes {
 		switch node.Type {
 		case parser.Heading, parser.Paragraph, parser.Item, parser.OrderedItem, parser.Table:
-			newText := fmt.Sprintf("[%d]%s\n", i, node.Text)
-			newSize := len(newText)
+			isContain := textprocesser.ContainsEnglishWords(node.Text)
 
-			if currentSize+newSize > byteLimit {
-				// Save the current translationTexts and reset
-				translationTextsList = append(translationTextsList, translationTexts)
-				translationTexts = ""
-				currentSize = 0
+			if isContain {
+				newText := fmt.Sprintf("[%d]%s\n", i, node.Text)
+				newSize := len(newText)
+
+				if currentSize+newSize > byteLimit {
+					// Save the current translationTexts and reset
+					translationTextsList = append(translationTextsList, translationTexts)
+					translationTexts = ""
+					currentSize = 0
+				}
+
+				translationTexts += newText
+				currentSize += newSize
+			} else {
+				fmt.Println(node.Text)
 			}
-
-			translationTexts += newText
-			currentSize += newSize
 		}
 	}
 

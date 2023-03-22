@@ -8,16 +8,27 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/cheggaaa/pb/v3"
 	"github.com/mattn/go-sqlite3"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/sofuetakuma112/go-markdown-translater/pkg/gpt35"
+	"github.com/sofuetakuma112/go-markdown-translater/pkg/gpt35/generator"
 	"github.com/sofuetakuma112/go-markdown-translater/pkg/parser"
-	"github.com/sofuetakuma112/go-markdown-translater/pkg/translate"
+	"github.com/sofuetakuma112/go-markdown-translater/pkg/textprocesser"
+
+	// "github.com/sofuetakuma112/go-markdown-translater/pkg/translate"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	// テーブルへのコネクション作成
 	db, err := sql.Open("sqlite3", "./translations.db")
 	if err != nil {
@@ -29,11 +40,21 @@ func main() {
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS translations (
 		source_text TEXT PRIMARY KEY,
 		translated_text TEXT,
-		is_valid BOOLEAN
+		formatted_text TEXT
 	)`)
 	if err != nil {
 		panic(err)
 	}
+
+	// GPT3.5クライアントの初期化
+	// APIキーを環境変数から取得
+	openaiApiKey := os.Getenv("OPENAI_API_KEY")
+	if openaiApiKey == "" {
+		fmt.Println("OPENAI_API_KEY environment variable is not set")
+		return
+	}
+
+	c := gpt35.NewClient(openaiApiKey)
 
 	if len(os.Args) != 2 {
 		fmt.Println("Usage: counttext <input-file>")
@@ -59,6 +80,10 @@ func main() {
 	for _, node := range nodes {
 		switch node.Type {
 		case parser.Heading, parser.Paragraph, parser.Item, parser.OrderedItem, parser.Table:
+			if !textprocesser.ContainsEnglishWords(node.Text) {
+				continue
+			}
+
 			targetNodes = append(targetNodes, node)
 		}
 	}
@@ -85,15 +110,37 @@ func main() {
 			err := row.Scan(&translatedText)
 
 			if err == sql.ErrNoRows {
-				translatedText, err = translate.Translate(sourceText)
+				// translatedText, err = translate.Translate(sourceText)
+				// if err != nil {
+				// 	log.Fatal(err)
+				// }
+
+				gptInputStr, err := generator.GenerateGptInputString(node.Text)
 				if err != nil {
 					log.Fatal(err)
 				}
 
-				isValid := parser.IsValidMarkdown(translatedText)
-				node.TranslatedText = translatedText
+				req := &gpt35.Request{
+					Model: gpt35.ModelGpt35Turbo,
+					Messages: []*gpt35.Message{
+						{
+							Role:    gpt35.RoleUser,
+							Content: gptInputStr,
+						},
+					},
+				}
 
-				_, err = db.Exec("INSERT INTO translations (source_text, translated_text, is_valid) VALUES (?, ?, ?)", sourceText, translatedText, isValid)
+				resp, err := c.GetChat(req)
+				if err != nil {
+					panic(err)
+				}
+
+				translatedText := resp.Choices[0].Message.Content
+				formattedText := strings.TrimLeft(translatedText, "\n")
+
+				node.TranslatedText = formattedText
+
+				_, err = db.Exec("INSERT INTO translations (source_text, translated_text, formatted_text) VALUES (?, ?, ?)", sourceText, translatedText, formattedText)
 				if err != nil {
 					var sqliteErr sqlite3.Error
 					if errors.As(err, &sqliteErr) && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
