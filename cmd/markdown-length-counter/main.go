@@ -12,17 +12,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/joho/godotenv"
+	"github.com/sofuetakuma112/go-markdown-translater/pkg/parser"
 )
-
-type ExchangeRates struct {
-	Rates struct {
-		JPY float64 `json:"JPY"`
-	} `json:"rates"`
-}
-
-func tokenCountToUSD(tokenCounts int) float64 {
-	return (float64(tokenCounts) / 1000.0) * 0.002
-}
 
 func main() {
 	err := godotenv.Load()
@@ -35,23 +26,49 @@ func main() {
 		os.Exit(1)
 	}
 
-	inputFile := os.Args[1]
+	filePath := os.Args[1]
 
-	count, codePoints, err := countText(inputFile)
+	// ファイルを読み込む
+	content, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		fmt.Println("Error counting text:", err)
-		os.Exit(1)
+		log.Fatalf("Error reading file: %v", err)
 	}
 
-	fmt.Printf("Text count (excluding images and code blocks): %d\n", count)
-	fmt.Printf("Unicode code points count (excluding images and code blocks): %d\n", codePoints)
+	markdownString := string(content)
 
-	usd := tokenCountToUSD(codePoints)
-	yen, err := USDToJPY(usd)
+	nodes := parser.ParseMarkdown(markdownString)
+
+	codePoints := 0
+	for _, node := range nodes {
+		switch node.Type {
+		case parser.Heading, parser.Paragraph, parser.Item, parser.OrderedItem, parser.Table:
+			codePoints += len(node.Text)
+		}
+	}
+
+	usdGPT35 := tokenCountToUSD(codePoints, 0.002)
+	yenGPT35, err := USDToJPY(usdGPT35)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("翻訳にかかる料金: %v円\n", int(yen))
+	fmt.Printf("GPT3.5を使用して翻訳にかかる料金: %v円\n", int(yenGPT35))
+
+	usdGPT4 := tokenCountToUSD(codePoints, 0.03)
+	yenGPT4, err := USDToJPY(usdGPT4)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("GPT4を使用して翻訳にかかる料金: %v円\n", int(yenGPT4))
+}
+
+type ExchangeRates struct {
+	Rates struct {
+		JPY float64 `json:"JPY"`
+	} `json:"rates"`
+}
+
+func tokenCountToUSD(tokenCounts int, rate float64) float64 {
+	return (float64(tokenCounts) / 1000.0) * rate
 }
 
 func countText(inputFile string) (int, int, error) {
