@@ -55,6 +55,9 @@ func main() {
 		if !strings.Contains(item.SourceText, "\n") {
 			item.FormattedText = strings.ReplaceAll(item.FormattedText, "\n", "")
 		}
+
+		re := regexp.MustCompile(`\[(.*?)\]（(.*?)）`)
+		item.FormattedText = re.ReplaceAllString(item.FormattedText, "[$1]($2)")
 	}
 
 	// ユーザーによる手動の修正が必要な箇所を探す
