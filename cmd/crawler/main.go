@@ -129,7 +129,7 @@ func saveMarkdown(url string, fileName string) {
 	f.Close()
 
 	// Get the path to the turndown.js script
-	scriptPath := filepath.Join("..", "..", "html2markdown")
+	scriptPath := filepath.Join("..", "..", "html-to-md/src/index.js")
 
 	fmt.Printf("node %s %s\n", scriptPath, f.Name())
 	cmd := exec.Command("node", scriptPath, f.Name())

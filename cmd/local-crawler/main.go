@@ -9,7 +9,7 @@ import (
 )
 
 func html2markdown(filePath, outDirPath string) {
-	scriptPath := "html2markdown"
+	scriptPath := "html-to-md/src/index.js"
 
 	fmt.Printf("node %s --htmlFile %s --outputDir %s\n", scriptPath, filePath, outDirPath)
 	cmd := exec.Command("node", scriptPath, "--htmlFile", filePath, "--outputDir", outDirPath, "--local")
