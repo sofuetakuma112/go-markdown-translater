@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "cheerio": "^1.0.0-rc.12",
+    "highlight.js": "^11.7.0",
     "md-to-pdf": "^5.2.3"
   },
   "name": "go-markdown-translater",
@@ -20,5 +21,6 @@
     "url": "https://github.com/sofuetakuma112/go-markdown-translater/issues"
   },
   "homepage": "https://github.com/sofuetakuma112/go-markdown-translater#readme",
-  "description": ""
+  "description": "",
+  "type": "module"
 }

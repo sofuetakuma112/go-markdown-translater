@@ -2,13 +2,15 @@ package parser
 
 import (
 	"fmt"
-	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/parser"
 	"io/ioutil"
 	"log"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/cheggaaa/pb"
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/parser"
 )
 
 func IsValidMarkdown(text string) bool {
@@ -44,6 +46,7 @@ type Node struct {
 	OrderedItemNum int
 	NestSpaceCount int // 箇条書きリスト要素のネストのためのスペースが何個あるか
 	HeadingLevel   int // 見出しのレベル
+	CodeLang       string
 }
 
 func ParseMarkdown(markdown string) []*Node {
@@ -52,7 +55,11 @@ func ParseMarkdown(markdown string) []*Node {
 	var currentParagraph []string
 	var tableParts []string
 
+	bar := pb.StartNew(len(lines))
+
 	for i := 0; i < len(lines); i++ {
+		bar.Set(i)
+
 		line := lines[i]
 		trimmedLine := strings.TrimSpace(lines[i])
 
@@ -106,6 +113,8 @@ func ParseMarkdown(markdown string) []*Node {
 			currentParagraph = append(currentParagraph, line)
 		}
 	}
+
+	bar.Finish()
 
 	if len(currentParagraph) > 0 {
 		nodes = append(nodes, createNewNodeWithIndex(Node{Type: Paragraph, Text: strings.Join(currentParagraph, " ")}, len(lines)-1))
@@ -164,7 +173,9 @@ func parseCodeBlock(lines []string) (Node, int) {
 		}
 		codeLines = append(codeLines, lines[i])
 	}
-	return Node{Type: CodeBlock, Text: strings.Join(codeLines, "\n"), NestSpaceCount: nestSpaceCount}, i
+	code := strings.Join(codeLines, "\n")
+
+	return Node{Type: CodeBlock, Text: code, NestSpaceCount: nestSpaceCount}, i
 }
 
 func parseImage(line string) Node {

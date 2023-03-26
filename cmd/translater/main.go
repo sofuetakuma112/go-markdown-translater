@@ -16,6 +16,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/sofuetakuma112/go-markdown-translater/pkg/gpt35"
 	"github.com/sofuetakuma112/go-markdown-translater/pkg/gpt35/generator"
+	"github.com/sofuetakuma112/go-markdown-translater/pkg/highlightCode"
 	"github.com/sofuetakuma112/go-markdown-translater/pkg/parser"
 	"github.com/sofuetakuma112/go-markdown-translater/pkg/textprocesser"
 
@@ -41,6 +42,14 @@ func main() {
 		source_text TEXT PRIMARY KEY,
 		translated_text TEXT,
 		formatted_text TEXT
+	)`)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS codes (
+		code TEXT PRIMARY KEY,
+		lang TEXT
 	)`)
 	if err != nil {
 		panic(err)
@@ -72,9 +81,46 @@ func main() {
 	markdownString := string(content)
 
 	nodes := parser.ParseMarkdown(markdownString)
+
+	// コードブロックの言語を推測する
+	codeBlockNodes := []*parser.Node{}
 	for _, node := range nodes {
-		fmt.Println(node)
+		switch node.Type {
+		case parser.CodeBlock:
+			codeBlockNodes = append(codeBlockNodes, node)
+		}
 	}
+
+	bar := pb.StartNew(len(codeBlockNodes))
+	for _, node := range codeBlockNodes {
+		code := node.Text
+
+		row := db.QueryRow("SELECT lang FROM codes WHERE code = ?", code)
+		var lang string
+		err := row.Scan(&lang)
+
+		if err == sql.ErrNoRows {
+			lang, err = highlightCode.HighlightCode(code)
+			if err != nil {
+				lang = ""
+			}
+
+			_, err = db.Exec("INSERT INTO codes (code, lang) VALUES (?, ?)", code, lang)
+			if err != nil {
+				var sqliteErr sqlite3.Error
+				if errors.As(err, &sqliteErr) && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
+					log.Fatal("code列がINSERT時に重複")
+				} else {
+					log.Fatal(fmt.Errorf("code: %s => lang: %s: %v", code, lang, err))
+				}
+			}
+		}
+
+		node.CodeLang = lang
+		bar.Increment()
+	}
+
+	bar.Finish()
 
 	targetNodes := []*parser.Node{}
 	for _, node := range nodes {
@@ -166,5 +212,6 @@ func main() {
 	progressBar.Finish()
 
 	translatedMarkdown := parser.NodesToMarkdown(nodes)
-	ioutil.WriteFile(filepath.Dir(filePath)+"/translated.md", []byte(translatedMarkdown), 0644)
+	outFilePath := filepath.Dir(filePath) + "/translated.md"
+	ioutil.WriteFile(outFilePath, []byte(translatedMarkdown), 0644)
 }

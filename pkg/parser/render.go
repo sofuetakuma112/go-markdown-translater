@@ -53,7 +53,7 @@ func nodeToMarkdown(node *Node) string {
 		orderNum := strconv.Itoa(node.OrderedItemNum)
 		return prefix + orderNum + ". " + text + "\n"
 	case CodeBlock:
-		return prefix + "```\n" + text + "\n" + prefix + "```\n"
+		return prefix + "```" + node.CodeLang + "\n" + text + "\n" + prefix + "```\n"
 	case Image:
 		return prefix + text + "\n"
 	case Table:
